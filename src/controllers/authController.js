@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt'
-import connection from "../database.js";
+import * as authRepository from '../repository/authRepository.js'
 
 export async function signup(req, res){
     try {
@@ -9,10 +9,7 @@ export async function signup(req, res){
           return res.sendStatus(422);
         }
     
-        const existingUsers = await connection.query(
-          `SELECT * FROM "users" WHERE "email"=$1`,
-          [email]
-        );
+        const existingUsers = authRepository.findUser(email)
     
         if (existingUsers.rowCount > 0) {
           return res.sendStatus(409);
@@ -20,10 +17,7 @@ export async function signup(req, res){
     
         const hashedPassword = bcrypt.hashSync(password, 12);
     
-        await connection.query(
-          `INSERT INTO "users" ("name", "email", "password") VALUES ($1, $2, $3)`,
-          [name, email, hashedPassword]
-        );
+        authRepository.saveUser(name, email, hashedPassword)
     
         res.sendStatus(201);
       } catch (err) {
@@ -40,10 +34,7 @@ export async function signin(req, res){
           return res.sendStatus(422);
         }
     
-        const { rows } = await connection.query(
-          `SELECT * FROM "users" WHERE "email"=$1`,
-          [email]
-        );
+        const { rows } = authRepository.findUser(email)
         const [user] = rows;
     
         if (!user || !bcrypt.compareSync(password, user.password)) {
